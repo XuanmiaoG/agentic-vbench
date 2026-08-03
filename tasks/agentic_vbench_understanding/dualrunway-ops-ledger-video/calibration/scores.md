@@ -8,17 +8,23 @@ Single-modality sibling of `dualrunway-ops-ledger`: same recording, same masked 
 byte-for-byte, no tower audio. `callsign` is replaced by `airline` because a flight
 number exists nowhere in the picture — the operator has to be read off the livery.
 
-| run | score | rollout (tool-call turns) |
+| run | score | notes |
 |---|---|---|
 | oracle | **1.0** | — |
 | empty / null | **0.0** | — |
-| Codex CLI (GPT 5.6 Sol) | **0.0526** (snapshot) | _pending_ |
-| Claude Code CLI (Opus 5) | _pending_ | _pending_ |
-| Antigravity (Gemini 3.5 Flash / 3.1 Pro) | _to run_ | _to run_ |
+| Codex CLI (GPT 5.6 Sol) | **0.0526** | 63 submitted, 3 correct, ran the full 7375 s |
+| **Claude Code CLI (Opus 5)** | **0.3308** | **82 submitted, 22 correct — 3.3x over the bar** |
 
-Status: **NOT CALIBRATED.** Oracle and null are real measurements. The Codex number is a
-mid-run snapshot taken at ~40 min, not a final score, and the node became unreachable
-before either agent finished. Do not treat this table as calibration evidence yet.
+Status: **FAILS THE BAR. Do not open a PR for this task.** Opus 5 reconstructs 43% of
+the ledger (recall 0.431, precision 0.268) and finished in 84 minutes without using its
+budget. The 6x spread between the two agents is the tell: this measures agent capability,
+not a task floor. Codex scores low because it cannot pin the moment, not because the
+judgement is hard.
+
+Kept in the repository as a **negative result**, because it is the cleanest available
+evidence that the audio channel in the sibling task is load-bearing rather than
+decorative. Same recording, same masked frames, same aircraft; remove the radio and a
+strong agent goes from 0.0 to 0.33.
 
 ## Why this variant exists, and why it is the harder one to justify
 
@@ -54,14 +60,36 @@ all-majority-guess strategy from 0.380 to:
 TOL is 20 s here rather than the sibling's 45 s. That task's tolerance had to absorb the
 offset between two files; here there is one file and the moment is read straight off it.
 
-**This is still above 0.10 on paper**, and that gap is the honest risk in this variant.
-The mid-run Codex snapshot came in at 0.0526 — below the projection — because the
-projection assumes operation detection is as accurate as Opus 5 managed with three hours
-and both channels. In practice the agent could not pin the moment: it submitted 63
-operations, its first four all `B737-family` + `SWA` (exactly the majority-guess
-strategy), and only 3 matched. If the final numbers hold under 0.10, the reason will be
-**detection accuracy, not judgement difficulty** — a weaker foundation than the sibling
-task's, and it should be described that way rather than presented as a design success.
+**The projection was right and the variant fails.** Codex came in at 0.0526, below the
+projection, because it could not pin the moment — 63 submissions, the first four all
+`B737-family` + `SWA` (the majority-guess strategy verbatim), 3 matches. Opus 5 came in
+at **0.3308**. Its airline distribution (SWA 43, DAL 7, FFT 6, UAL 6, AAL 5) tracks the
+ground truth's shape (SWA 23, DAL 6, AAL 6, FFT 4, AAY 4), so it is genuinely reading
+liveries off night silhouettes, not guessing the majority class. Its 22 correct rows have
+timing errors of 1-15 s, half of them inside 5 s.
+
+### Every tightening lever, and why none of them work
+
+To put Opus under 0.10 with 82 submissions against 51 ground-truth rows, its 22 correct
+answers have to fall to 6 — a 73% cut. Measured or derived:
+
+| lever | effect | verdict |
+|---|---|---|
+| TOL 20 → 10 s | 0.331 → 0.316 | no effect; its errors are already 1-15 s |
+| TOL → 5 s | 0.181 | still over, and approaching the precision of the ground truth itself |
+| TOL → 3 s | 0.090 | **invalid** — the scoring window would be tighter than the ±12 s the ADS-B-derived times are actually known to |
+| add `runway` | would need the agent to be ≤31% accurate on it; guessing the majority runway alone is 77% | **arithmetically impossible** |
+| require aircraft variant (737-700 / -800 / MAX 8) | large enough effect | winglet geometry is unreadable in night silhouette, so the ground truth stops being recoverable |
+| aircraft re-identification (link a departure to the same airframe's earlier arrival) | right difficulty profile | only **3** airframes in the observable set do both, and all three are Southwest 737s — no usable ground truth, and arguably unsolvable |
+| keep only the dimmest events (filter ground truth by measured contour density) | floor at **0.18** — Opus still gets 9 of the 16 darkest | and the filter runs backwards: it deliberately keeps the events that are hardest to see, which degrades ground-truth recoverability rather than improving the task |
+
+Stacking the last two (dimmest events plus TOL = 5 s) grazes 0.10, but that number is the
+product of two filters that are each independently indefensible. It would not mean the
+task got harder.
+
+The camera is what defeats it: a PTZ operator who follows each aircraft hands the agent a
+well-framed, tracked shot of every one. Livery and family are then ordinary visual work
+for a capable model. There is no honest knob that changes that.
 
 ## Ground truth
 
