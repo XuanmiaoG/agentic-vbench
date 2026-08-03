@@ -87,6 +87,37 @@ Stacking the last two (dimmest events plus TOL = 5 s) grazes 0.10, but that numb
 product of two filters that are each independently indefensible. It would not mean the
 task got harder.
 
+### Two further designs, both measured, both rejected
+
+**Finer type vocabulary** (`B737-NG` / `B737-MAX` / `A320ceo-family` / `A320neo-family`
+instead of family labels). The distribution improves — largest class 47% rather than 59%
+— and GPT 5.6 Sol scored 0.1406 on it, still over. But its answers give the design away:
+65 of its 77 rows are `B737-NG` and it reported **zero** `B737-MAX`, `B757`, `E-Jet`,
+`ERJ` or `A330`, against a ground truth that contains 7, 4, 2, 2 and 1 of them. It was
+not distinguishing anything; it answered the majority class 84% of the time.
+
+That matches what the frames show. Tight full-resolution crops of a MAX 8 and a 737-700
+were taken at both phases: on approach the landing-light flare sits exactly over the wing
+root and washes the wing out entirely, and on rollout the PTZ pan smears the wing into a
+motion blur. MAX-vs-NG rests on winglet shape (split-tip vs blended) and neo-vs-ceo on
+sharklets vs wingtip fences. **None of it is readable here**, so 14% of the ground truth
+would be unobservable. The variant is worse than the family-level one: it fails the bar
+*and* breaks recoverability.
+
+**Dropping the dominant class** (score only the non-737 operations, 20 rows: A320-family
+11, B757 4, regional-jet 4, A330 1, all separable by size, proportion and engine
+placement rather than winglets). This kills majority-guessing outright:
+
+| agent | full ledger (51) | non-737 only (20) |
+|---|---|---|
+| GPT 5.6 Sol | 0.1875 | **0.0625** |
+| Claude Opus 5 | 0.3308 | **0.2979** |
+
+And that split is the whole story. Filtering only removes GPT's guessing target. Opus is
+genuinely reading the picture — it still hits 7 of the 20 hardest rows — so no
+ground-truth filter touches it. Its ~35-43% per-row accuracy on this footage is a
+capability, not a loophole, and F1 is scale-invariant to how much ledger you remove.
+
 The camera is what defeats it: a PTZ operator who follows each aircraft hands the agent a
 well-framed, tracked shot of every one. Livery and family are then ordinary visual work
 for a capable model. There is no honest knob that changes that.
